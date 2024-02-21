@@ -85,3 +85,28 @@ func TestUpdateUserName_ExpectSuccess(t *testing.T) {
 
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestGetUserDetails_ExpectSuccess(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create mock: %v", err)
+	}
+	defer db.Close()
+
+	server := userServiceServer{db: db}
+
+	mock.ExpectQuery("SELECT username, age FROM users WHERE token = ?").
+		WithArgs("testtoken").
+		WillReturnRows(sqlmock.NewRows([]string{"name", "age"}).AddRow("testname", 30))
+
+	resp, err := server.GetUserDetails(context.Background(), &pb.UserDetailsRequest{
+		Token: "testtoken",
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	assert.Equal(t, "testname", resp.Name)
+	assert.Equal(t, int32(30), resp.Age)
+
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
